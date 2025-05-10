@@ -1,25 +1,34 @@
+// src/App.js
 import React, { useRef, useEffect, useState } from 'react';
+import VideoGrid from './components/VideoGrid/VideoGrid';
+import RecordingControls from './components/RecordingControls/RecordingControls';
+import AudioWaveform from './components/AudioWaveform/AudioWaveform';
+import ParticipantIndicator from './components/ParticipantIndicator/ParticipantIndicator';
 import useMediaRecorder from './hooks/useMediaRecorder';
 import { uploadBlob } from './utils/uploadBlob';
+import './App.css';
 
 function App() {
-  const localVideo = useRef(null);
-  const remoteVideo = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const [ws, setWs] = useState(null);
   const peerRef = useRef(null);
   const [localStream, setLocalStream] = useState(null);
-
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [participants, setParticipants] = useState([]);
 
   const { recording, blobs, start, stop } = useMediaRecorder(localStream);
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
-        if(localVideo.current) {
-        localVideo.current.srcObject = stream;
-        setupWebSocket(stream);
+        setLocalStream(stream);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
         }
-      }).catch(err => console.error('getUserMedia failed: ', err));
+        setupWebSocket(stream);
+      })
+      .catch(err => console.error('getUserMedia failed: ', err));
   }, []);
 
   useEffect(() => {
@@ -34,14 +43,10 @@ function App() {
   function setupWebSocket(localStream) {
     const socket = new WebSocket('ws://localhost:3001');
     setWs(socket);
-  
+
     const peer = new RTCPeerConnection();
     peerRef.current = peer;
     localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
-  
-    peer.onicecandidate = e => {
-      if (e.candidate) socket.send(JSON.stringify({ type: 'ice', candidate: e.candidate }));
-    };
 
     const iceQueue = [];
 
@@ -52,11 +57,13 @@ function App() {
     };
 
     peer.ontrack = e => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = e.streams[0];
+      const [stream] = e.streams;
+      setRemoteStream(stream);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream;
       }
     };
-  
+
     socket.onmessage = async ({ data }) => {
       const msg = JSON.parse(data);
       if (msg.type === 'offer') {
@@ -79,31 +86,47 @@ function App() {
         }
       }
     };
-  
-    // create and send offer if you’re the first in the room
+
     peer.createOffer().then(offer => {
       peer.setLocalDescription(offer);
       socket.addEventListener('open', () => {
         socket.send(JSON.stringify(offer));
+      });
     });
-  });
-    peerRef.current = peer;
   }
 
-  
+  useEffect(() => {
+    const updatedParticipants = [];
+
+    if (localStream) {
+      updatedParticipants.push({
+        name: 'You',
+        ref: localVideoRef,
+        isLocal: true,
+      });
+    }
+
+    if (remoteStream) {
+      updatedParticipants.push({
+        name: 'Guest',
+        ref: remoteVideoRef,
+        isLocal: false,
+      });
+    }
+
+    setParticipants(updatedParticipants);
+  }, [localStream, remoteStream]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <video ref={localVideo} autoPlay muted playsInline style={{ width: 300, background: '#000' }} />
-        <video ref={remoteVideo} autoPlay playsInline style={{ width: 300, background: '#000' }} />
-      </div>
-      <div>
-        {!recording ? (
-          <button onClick={start}>Start Recording</button>
-        ) : (
-          <button onClick={stop}>Stop & Upload</button>
-        )}
-      </div>
+    <div className="app-container">
+      <VideoGrid participants={participants} />
+      <RecordingControls
+        recording={recording}
+        onStart={start}
+        onStop={stop}
+      />
+      <AudioWaveform stream={localStream} />
+      <ParticipantIndicator isSpeaking={false} />
     </div>
   );
 }

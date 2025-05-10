@@ -13,7 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const bucketName = process.env.MINIO_BUCKET; // e.g. "recordings"
+const bucketName = process.env.MINIO_BUCKET_NAME; // e.g. "recordings"
 minioClient.bucketExists(bucketName, (err, exists) => {
   if (err) {
     console.error('Error checking bucket:', err);
@@ -31,7 +31,7 @@ minioClient.bucketExists(bucketName, (err, exists) => {
 app.use('/presign', presignRoute);
 
 // ---- start HTTP + WebSocket server on same port ----
-const PORT = process.env.PORT || 9000;
+const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () =>
   console.log(`Server listening on http://localhost:${PORT}`)
 );

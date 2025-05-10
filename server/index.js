@@ -31,7 +31,7 @@ minioClient.bucketExists(bucketName, (err, exists) => {
 app.use('/presign', presignRoute);
 
 // ---- start HTTP + WebSocket server on same port ----
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 9000;
 const server = app.listen(PORT, () =>
   console.log(`Server listening on http://localhost:${PORT}`)
 );

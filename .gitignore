@@ -1,0 +1,42 @@
+# --------------------
+# Node.js + React full-stack project
+# --------------------
+
+# Dependencies
+**/node_modules/
+**/package-lock.json
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Production builds
+client/build/
+server/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Vercel & Netlify
+.vercel/
+.netlify/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Misc
+.pnp/
+.pnp.js

@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
 
+const minioClient = require('./config/minio');
 const presignRoute = require('./routes/presign');
 
 const app = express();
@@ -11,6 +12,20 @@ const app = express();
 // ---- HTTP middleware & routes ----
 app.use(cors());
 app.use(express.json());
+
+const bucketName = process.env.MINIO_BUCKET; // e.g. "recordings"
+minioClient.bucketExists(bucketName, (err, exists) => {
+  if (err) {
+    console.error('Error checking bucket:', err);
+  } else if (!exists) {
+    minioClient.makeBucket(bucketName, '', err2 => {
+      if (err2) console.error('Error creating bucket:', err2);
+      else console.log(`Bucket "${bucketName}" created.`);
+    });
+  } else {
+    console.log(`Bucket "${bucketName}" already exists.`);
+  }
+});
 
 // mount the presign route at /presign
 app.use('/presign', presignRoute);
